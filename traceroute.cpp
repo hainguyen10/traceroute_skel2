@@ -47,7 +47,7 @@ int main (int argc, char *argv[]) {
       destIP = optarg;
       break;
     case 'd':
-      LOG_LEVEL = atoi(optarg);;
+      LOG_LEVEL = atoi(optarg);
       break;
     case ':':
     case '?':
@@ -115,12 +115,12 @@ int main (int argc, char *argv[]) {
       if(LOG_LEVEL > 1){
         std:: cout << "[DEBUG] Waiting up to 5 seconds to see if data becomes available. Current TTL: " << current_ttl<< std:: endl;
       }
-      int select_returned = select(recvFd + 1, &readFdSet, &writeFdSet, &exceptFdsSet, &timeout);
+      int select_returned = select(recvFd + 1, &readFdSet, NULL, NULL, &timeout);
       if(select_returned < 0 ) {
         perror("select");
         return -1;
       }
-      std:: cout << "[DEBUG] Select_Returned = " << select_returned << std:: endl;
+      //std:: cout << "[DEBUG] Select_Returned = " << select_returned << std:: endl;
       if(FD_ISSET(recvFd, &readFdSet)){
         std:: cout << "[DEBUG] Bit # " << recvFd << " is set" << std:: endl;
         struct sockaddr_in recv_addr;

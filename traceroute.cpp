@@ -19,6 +19,7 @@ void fill_in_IP_Header(char *packet, int ttl, uint32_t destAddr) {
   ip->ihl = 5;
   ip->tos = 0;
   ip->tot_len = htons(BUF_SIZE);
+  ip->id = 0;
   ip->frag_off = 0;
   ip->ttl = ttl;
   ip->protocol = IPPROTO_ICMP;
@@ -38,8 +39,6 @@ void fill_in_ICMP_Header(char *packet) {
 
 int main (int argc, char *argv[]) {
   std::string destIP;
-
-  
   int opt = 0;
   while ((opt = getopt(argc,argv,"t:d:")) != -1) {
 
@@ -69,7 +68,7 @@ int main (int argc, char *argv[]) {
   memset(send_buf, 'A', BUF_SIZE);
   int sockFD = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
   if(sockFD == -1){
-    perror("socket");
+    perror("socket (FD)");
   }
   int sendFd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
   if(sendFd < 0) {
@@ -82,10 +81,13 @@ int main (int argc, char *argv[]) {
     perror("socket (recvFd)");
     return -1;
   }
+  inet_addr(destIP.c_str());
   struct sockaddr_in dest_addr;
   memset(&dest_addr, 0, sizeof(dest_addr));
   dest_addr.sin_family = AF_INET;
   dest_addr.sin_addr.s_addr = inet_addr(destIP.c_str());
+  
+  //inet_ntop(AF_INET, &recv_addr.sin_addr, respondent_ip, INET_ADDRSTRLEN);
   int current_ttl = START_TTL;
   bool reply_not_received = true;
   while (current_ttl <= MAX_TTL && reply_not_received) {
@@ -94,34 +96,36 @@ int main (int argc, char *argv[]) {
     if(LOG_LEVEL > 0) {
       std :: cout <<"[DEBUG] Sending packet with TTL = " << current_ttl << std:: endl;
     }
-    if(sendto(sendFd, send_buf, BUF_SIZE, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr)) < 0) {
+    if(sendto(sendFd, send_buf, BUF_SIZE, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr)) == -1) {
       perror("sendto");
-      break;
+      return -1;
     }
     time_t start_time = time(NULL);
     bool not_done_reading = true;
     bool packet_acknowledged = false;
     while((time(NULL) - start_time < 15) && not_done_reading) {
       fd_set readFdSet;
-      FD_ZERO(&readFdSet);
-      FD_SET(recvFd, &readFdSet);
+      fd_set writeFdSet;
+      fd_set exceptFdsSet;
       struct timeval timeout;
       timeout.tv_sec = 5;
       timeout.tv_usec = 0;
+      FD_ZERO(&readFdSet);
+      FD_SET(recvFd, &readFdSet);
       if(LOG_LEVEL > 1){
-        std:: cout << "[DEBUG] Waiting up to 5 seconds with select() for TTL =" << current_ttl << "..." << std::endl;
+        std:: cout << "[DEBUG] Waiting up to 5 seconds to see if data becomes available. Current TTL: " << current_ttl<< std:: endl;
       }
-      int select_returned = select(recvFd + 1, &readFdSet, NULL, NULL, &timeout);
+      int select_returned = select(recvFd + 1, &readFdSet, &writeFdSet, &exceptFdsSet, &timeout);
       if(select_returned < 0 ) {
         perror("select");
-        break;
-      }else if(select_returned == 0) {
-        continue;
+        return -1;
       }
+      std:: cout << "[DEBUG] Select_Returned = " << select_returned << std:: endl;
       if(FD_ISSET(recvFd, &readFdSet)){
-        struct sockaddr_in resp_addr;
-        socklen_t addr_len = sizeof(resp_addr);
-        ssize_t bytes_received = recvfrom(recvFd, recv_buf, BUF_SIZE, 0, (struct sockaddr *)&resp_addr, &addr_len);
+        std:: cout << "[DEBUG] Bit # " << recvFd << " is set" << std:: endl;
+        struct sockaddr_in recv_addr;
+        socklen_t addr_len = sizeof(recv_addr);
+        ssize_t bytes_received = recvfrom(recvFd, recv_buf, BUF_SIZE, 0, (struct sockaddr *)&recv_addr, &addr_len);
         if(bytes_received < 0){
           perror("recvfrom");
           return -1;
@@ -130,7 +134,7 @@ int main (int argc, char *argv[]) {
         int ip_hdr_len = resp_ip->ihl *4;
         struct icmphdr *resp_icmp = (struct icmphdr *)(recv_buf + ip_hdr_len);
         char respondent_ip[INET_ADDRSTRLEN];
-        inet_ntop(AF_INET, &resp_addr.sin_addr, respondent_ip, INET_ADDRSTRLEN);
+        inet_ntop(AF_INET, &recv_addr.sin_addr, respondent_ip, INET_ADDRSTRLEN);
         if(resp_icmp->type == ICMP_ECHOREPLY) {
           std::cout << "Echo Reply received from destination: "<< respondent_ip << " with TTL " << current_ttl << std::endl;
           reply_not_received = false;
@@ -155,3 +159,4 @@ int main (int argc, char *argv[]) {
   close(recvFd);
   return 0;
 }
+

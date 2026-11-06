@@ -128,7 +128,7 @@ int main (int argc, char *argv[]) {
         ssize_t bytes_received = recvfrom(recvFd, recv_buf, BUF_SIZE, 0, (struct sockaddr *)&recv_addr, &addr_len);
         if(bytes_received < 0){
           perror("recvfrom");
-          return -1;
+          break;
         }
         struct iphdr *resp_ip = (struct iphdr *)recv_buf;
         int ip_hdr_len = resp_ip->ihl *4;
@@ -138,7 +138,7 @@ int main (int argc, char *argv[]) {
         if(resp_icmp->type == ICMP_ECHOREPLY) {
           std::cout << "Echo Reply received from destination: "<< respondent_ip << " with TTL " << current_ttl << std::endl;
           reply_not_received = false;
-          not_done_reading = true;
+          not_done_reading = false;
           packet_acknowledged = true;
           break;
         }else if(resp_icmp-> type == ICMP_TIME_EXCEEDED && resp_icmp->code == ICMP_EXC_TTL){

@@ -32,6 +32,6 @@ inline int LOG_LEVEL = 0;
 #define ENDL  " (" << __FILE__ << ":" << __LINE__ << ")" << std::endl; }
 
 uint16_t checksum(unsigned short *buffer, int size);
-void fill_in_IP_Header(char *packet, int ttl);
+void fill_in_IP_Header(char *packet, int ttl, uint32_t destAddr);
 void fill_in_ICMP_Header(char *packet);
 #endif

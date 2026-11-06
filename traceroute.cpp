@@ -66,10 +66,10 @@ int main (int argc, char *argv[]) {
   char send_buf[BUF_SIZE];
   char recv_buf[BUF_SIZE];
   memset(send_buf, 'A', BUF_SIZE);
-  int sockFD = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
-  if(sockFD == -1){
-    perror("socket (FD)");
-  }
+  // int sockFD = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
+  // if(sockFD == -1){
+  //   perror("socket (FD)");
+  // }
   int sendFd = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
   if(sendFd < 0) {
     perror("socket (sendFd)");

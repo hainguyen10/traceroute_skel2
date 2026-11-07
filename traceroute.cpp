@@ -74,7 +74,7 @@ int main (int argc, char *argv[]) {
   if(sendFd < 0) {
     perror("socket (sendFd)");
     std::cerr << "Error: Raw sockets require root privileges (sudo).\n";
-    return 1;
+    return -1;
   }
   int recvFd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
   if(recvFd == -1) {
@@ -98,7 +98,7 @@ int main (int argc, char *argv[]) {
     }
     if(sendto(sendFd, send_buf, BUF_SIZE, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr)) == -1) {
       perror("sendto");
-      return -1;
+      break;
     }
     time_t start_time = time(NULL);
     bool not_done_reading = true;
@@ -118,11 +118,11 @@ int main (int argc, char *argv[]) {
       int select_returned = select(recvFd + 1, &readFdSet, NULL, NULL, &timeout);
       if(select_returned < 0 ) {
         perror("select");
-        return -1;
+        break;
       }
       //std:: cout << "[DEBUG] Select_Returned = " << select_returned << std:: endl;
       if(FD_ISSET(recvFd, &readFdSet)){
-        std:: cout << "[DEBUG] Bit # " << recvFd << " is set" << std:: endl;
+        //std:: cout << "[DEBUG] Bit # " << recvFd << " is set" << std:: endl;
         struct sockaddr_in recv_addr;
         socklen_t addr_len = sizeof(recv_addr);
         ssize_t bytes_received = recvfrom(recvFd, recv_buf, BUF_SIZE, 0, (struct sockaddr *)&recv_addr, &addr_len);

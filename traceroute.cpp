@@ -79,6 +79,7 @@ int main (int argc, char *argv[]) {
   int recvFd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
   if(recvFd == -1) {
     perror("socket (recvFd)");
+    close(sendFd);
     return -1;
   }
   inet_addr(destIP.c_str());
@@ -105,8 +106,6 @@ int main (int argc, char *argv[]) {
     bool packet_acknowledged = false;
     while((time(NULL) - start_time < 15) && not_done_reading) {
       fd_set readFdSet;
-      fd_set writeFdSet;
-      fd_set exceptFdsSet;
       struct timeval timeout;
       timeout.tv_sec = 5;
       timeout.tv_usec = 0;
